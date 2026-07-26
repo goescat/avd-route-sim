@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>AVD 路徑定位模擬器</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div id="sidebar">
+    <h1>AVD 路徑定位模擬器</h1>
+    <p class="hint">在地圖上點擊以新增路徑點，至少需要 2 點。</p>
+
+    <div class="field">
+      <label>AVD console port</label>
+      <input type="number" id="port" value="5554" />
+    </div>
+
+    <div class="field">
+      <label>速度預設</label>
+      <select id="preset">
+        <option value="">— 選擇預設 —</option>
+        <option value="5">走路 (5 km/h)</option>
+        <option value="10">跑步 (10 km/h)</option>
+        <option value="20">騎車 (20 km/h)</option>
+        <option value="60">開車 (60 km/h)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>速度 (km/h，可自訂)</label>
+      <input type="number" id="speed" value="5" step="0.1" min="0.1" />
+    </div>
+
+    <div class="field">
+      <label>更新間隔 (秒)</label>
+      <input type="number" id="interval" value="1" step="0.1" min="0.1" />
+    </div>
+
+    <div class="field checkbox-field">
+      <label><input type="checkbox" id="loop" /> 循環播放（走完自動從頭再走）</label>
+    </div>
+
+    <div class="buttons">
+      <button id="undo">復原上一點</button>
+      <button id="clear">清除路徑</button>
+    </div>
+    <div class="buttons">
+      <button id="start" class="primary">開始模擬</button>
+      <button id="stop" class="danger">停止模擬</button>
+    </div>
+
+    <div id="status">
+      <div>狀態：<span id="st-status">idle</span></div>
+      <div>進度：<span id="st-progress">-</span></div>
+      <div>目前座標：<span id="st-latlon">-</span></div>
+      <div>已完成圈數：<span id="st-laps">0</span></div>
+      <div id="st-error" class="error"></div>
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
