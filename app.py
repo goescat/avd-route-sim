@@ -3,7 +3,7 @@ an Android emulator (AVD) at a chosen movement speed."""
 
 from flask import Flask, jsonify, render_template, request
 
-from route_sim import RouteSimulator
+from route_sim import EmulatorConsole, EmulatorConsoleError, RouteSimulator
 
 app = Flask(__name__)
 
@@ -40,6 +40,33 @@ def start():
 
     _sim.start()
     return jsonify({"ok": True})
+
+
+@app.route("/api/set_point", methods=["POST"])
+def set_point():
+    if _sim is not None and _sim.is_alive():
+        return jsonify({"ok": False, "error": "路徑模擬正在執行中，請先停止再設定單點定位"}), 409
+
+    data = request.get_json(force=True)
+    try:
+        lat = float(data.get("lat"))
+        lon = float(data.get("lon"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "座標格式錯誤"}), 400
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        return jsonify({"ok": False, "error": "座標超出範圍"}), 400
+    port = int(data.get("port", 5554))
+
+    console = EmulatorConsole(port)
+    try:
+        console.connect()
+        console.geo_fix(lat, lon)
+    except EmulatorConsoleError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    finally:
+        console.close()
+
+    return jsonify({"ok": True, "lat": lat, "lon": lon})
 
 
 @app.route("/api/stop", methods=["POST"])

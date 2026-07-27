@@ -28,3 +28,10 @@ button.danger { background: #dc2626; color: white; border: none; }
 #status { margin-top: 16px; font-size: 13px; background: #f5f5f5; padding: 10px; border-radius: 6px; }
 #status div { margin-bottom: 4px; }
 .error { color: #dc2626; }
+#st-point-msg { color: #16a34a; }
+
+.hidden { display: none; }
+
+.mode-toggle { display: flex; flex-direction: column; gap: 4px; }
+.mode-toggle label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #333; font-weight: normal; }
+.mode-toggle input { width: auto; }

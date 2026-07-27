@@ -11,6 +11,68 @@ let posMarker = null;
 let running = false;
 let pollTimer = null;
 
+let mode = "route"; // "route" | "point"
+let pointMarker = null;
+
+function setMode(newMode) {
+  mode = newMode;
+  document.getElementById("route-panel").classList.toggle("hidden", mode !== "route");
+  document.getElementById("point-panel").classList.toggle("hidden", mode !== "point");
+}
+
+document.getElementById("mode-route").onchange = () => setMode("route");
+document.getElementById("mode-point").onchange = () => setMode("point");
+
+function updatePointMarker(lat, lon) {
+  const latlng = [lat, lon];
+  if (!pointMarker) {
+    pointMarker = L.circleMarker(latlng, { radius: 7, color: "#f59e0b", fillOpacity: 1 }).addTo(map);
+  } else {
+    pointMarker.setLatLng(latlng);
+  }
+}
+
+function readPointInputs() {
+  const raw = document.getElementById("point-coord").value;
+  const parts = raw.split(",").map((s) => parseFloat(s.trim()));
+  if (parts.length !== 2 || parts.some(Number.isNaN)) return null;
+  const [lat, lon] = parts;
+  return { lat, lon };
+}
+
+document.getElementById("point-coord").addEventListener("change", () => {
+  const p = readPointInputs();
+  if (p) updatePointMarker(p.lat, p.lon);
+});
+
+document.getElementById("set-point").onclick = async () => {
+  const p = readPointInputs();
+  const msgEl = document.getElementById("st-point-msg");
+  const errEl = document.getElementById("st-error");
+  msgEl.textContent = "";
+  errEl.textContent = "";
+  if (!p) {
+    errEl.textContent = "請輸入有效的緯度與經度";
+    return;
+  }
+  const res = await fetch("/api/set_point", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      lat: p.lat,
+      lon: p.lon,
+      port: parseInt(document.getElementById("port").value, 10),
+    }),
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    errEl.textContent = "設定失敗: " + data.error;
+    return;
+  }
+  updatePointMarker(data.lat, data.lon);
+  msgEl.textContent = `已設定定位: ${data.lat.toFixed(6)}, ${data.lon.toFixed(6)}`;
+};
+
 function redraw() {
   polyline.setLatLngs(points);
 }
@@ -21,6 +83,12 @@ function addMarker(latlng) {
 }
 
 map.on("click", (e) => {
+  if (mode === "point") {
+    document.getElementById("point-coord").value =
+      `${e.latlng.lat.toFixed(7)}, ${e.latlng.lng.toFixed(7)}`;
+    updatePointMarker(e.latlng.lat, e.latlng.lng);
+    return;
+  }
   if (running) return;
   points.push([e.latlng.lat, e.latlng.lng]);
   addMarker(e.latlng);

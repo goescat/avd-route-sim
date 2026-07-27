@@ -37,6 +37,16 @@ pip install -r requirements.txt
   若本機有 `~/.emulator_console_auth_token` 會自動帶入 `auth` 驗證。
 - 若模擬器需要驗證但找不到 token，或 port 錯誤/AVD 未啟動，畫面上會顯示錯誤訊息。
 
+## 測試
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+單元測試涵蓋路徑幾何運算（haversine、內插）與 API 輸入驗證（不合法格式、超出範圍的
+經緯度、缺欄位等），emulator console 連線以假物件（fake）替換，不需要實際啟動 AVD。
+
 ## 已知限制
 
 - 目前整條路徑只用單一速度；若需要中途變速，可分段畫路徑、多次調整速度後分次執行。
