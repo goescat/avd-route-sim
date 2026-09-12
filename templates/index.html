@@ -15,6 +15,15 @@
       <input type="number" id="port" value="5554" />
     </div>
 
+    <div class="field search-field">
+      <label>搜尋地標 / 地址</label>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="例如 台北101、台北市信義區市府路1號" />
+        <button id="search-btn">搜尋</button>
+      </div>
+      <div id="search-results"></div>
+    </div>
+
     <div class="field mode-field">
       <label>操作模式</label>
       <div class="mode-toggle">
@@ -84,6 +93,10 @@
     </div>
   </div>
   <div id="map"></div>
+
+  <a id="github-corner" href="https://github.com/goescat/avd-route-sim" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub">
+    <img src="{{ url_for('static', filename='img/github-icon.png') }}" alt="GitHub" />
+  </a>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>

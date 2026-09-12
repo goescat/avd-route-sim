@@ -20,8 +20,25 @@ function setMode(newMode) {
   document.getElementById("point-panel").classList.toggle("hidden", mode !== "point");
 }
 
-document.getElementById("mode-route").onchange = () => setMode("route");
-document.getElementById("mode-point").onchange = () => setMode("point");
+function clearPoint() {
+  document.getElementById("point-coord").value = "";
+  if (pointMarker) {
+    map.removeLayer(pointMarker);
+    pointMarker = null;
+  }
+}
+
+document.getElementById("mode-route").onchange = () => {
+  clearPoint();
+  setMode("route");
+};
+document.getElementById("mode-point").onchange = async () => {
+  if (running) {
+    await stopSimulation();
+  }
+  clearRoute();
+  setMode("point");
+};
 
 function updatePointMarker(lat, lon) {
   const latlng = [lat, lon];
@@ -73,6 +90,87 @@ document.getElementById("set-point").onclick = async () => {
   msgEl.textContent = `已設定定位: ${data.lat.toFixed(6)}, ${data.lon.toFixed(6)}`;
 };
 
+let searchMarker = null;
+
+function showSearchStatus(text) {
+  document.getElementById("search-results").innerHTML =
+    `<div class="search-status">${text}</div>`;
+}
+
+function setFirstRoutePoint(lat, lon) {
+  clearRoute();
+  points.push([lat, lon]);
+  addMarker([lat, lon]);
+  redraw();
+}
+
+function applySearchResult(lat, lon) {
+  if (mode === "point") {
+    document.getElementById("point-coord").value = `${lat.toFixed(7)}, ${lon.toFixed(7)}`;
+    updatePointMarker(lat, lon);
+  } else {
+    setFirstRoutePoint(lat, lon);
+  }
+}
+
+function renderSearchResults(items) {
+  const container = document.getElementById("search-results");
+  container.innerHTML = "";
+  if (items.length === 0) {
+    showSearchStatus("找不到符合的地點");
+    return;
+  }
+  items.forEach((item) => {
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    const row = document.createElement("div");
+    row.className = "search-result";
+    row.textContent = item.display_name;
+    row.onclick = () => {
+      applySearchResult(lat, lon);
+      map.setView([lat, lon], 17);
+      if (searchMarker) map.removeLayer(searchMarker);
+      searchMarker = null;
+    };
+    container.appendChild(row);
+  });
+
+  const first = items[0];
+  const flat = parseFloat(first.lat);
+  const flon = parseFloat(first.lon);
+  if (!searchMarker) {
+    searchMarker = L.circleMarker([flat, flon], { radius: 6, color: "#16a34a", fillOpacity: 0.8 }).addTo(map);
+  } else {
+    searchMarker.setLatLng([flat, flon]).addTo(map);
+  }
+  map.setView([flat, flon], 16);
+}
+
+async function runSearch() {
+  const query = document.getElementById("search-input").value.trim();
+  if (!query) return;
+  showSearchStatus("搜尋中...");
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" +
+      encodeURIComponent(query);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderSearchResults(data);
+  } catch (err) {
+    showSearchStatus("搜尋失敗: " + err.message);
+  }
+}
+
+document.getElementById("search-btn").onclick = runSearch;
+document.getElementById("search-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    runSearch();
+  }
+});
+
 function redraw() {
   polyline.setLatLngs(points);
 }
@@ -103,11 +201,15 @@ document.getElementById("undo").onclick = () => {
   redraw();
 };
 
-document.getElementById("clear").onclick = () => {
-  if (running) return;
+function clearRoute() {
   points = [];
   markers.splice(0).forEach((m) => map.removeLayer(m));
   redraw();
+}
+
+document.getElementById("clear").onclick = () => {
+  if (running) return;
+  clearRoute();
 };
 
 document.getElementById("preset").onchange = (e) => {
@@ -140,11 +242,21 @@ document.getElementById("start").onclick = async () => {
   startPolling();
 };
 
-document.getElementById("stop").onclick = async () => {
+async function stopSimulation() {
   await fetch("/api/stop", { method: "POST" });
   running = false;
   stopPolling();
-};
+  if (posMarker) {
+    map.removeLayer(posMarker);
+    posMarker = null;
+  }
+}
+
+window.addEventListener("pagehide", () => {
+  if (running) navigator.sendBeacon("/api/stop");
+});
+
+document.getElementById("stop").onclick = stopSimulation;
 
 function startPolling() {
   stopPolling();
